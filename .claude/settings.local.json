@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s https://api.github.com/repos/benjamin-recht/microagent/contents/)",
+      "Bash(python3 -c \"import sys,json; [print\\(f[''''name''''], f[''''type'''']\\) for f in json.loads\\(sys.stdin.read\\(\\)\\)]\")",
+      "Bash(gh api:*)",
+      "Bash(pip install:*)",
+      "Bash(python -c \":*)",
+      "Bash(timeout 5 python run.py)"
+    ]
+  }
+}
