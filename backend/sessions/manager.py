@@ -28,6 +28,7 @@ class Session:
     history: list[dict] = field(default_factory=list)
     display: list[DisplayMessage] = field(default_factory=list)
     title: str = "New Session"
+    teaching_mode: bool = False
 
 
 class SessionManager:
@@ -68,6 +69,15 @@ class SessionManager:
             if path.is_file():
                 files.append(str(path.relative_to(session.workspace)))
         return files
+
+    def clear_history(self, session_id: str) -> bool:
+        """Clear conversation and display history for a session (keeps workspace files)."""
+        session = self.get(session_id)
+        if not session:
+            return False
+        session.history.clear()
+        session.display.clear()
+        return True
 
     def read_file(self, session_id: str, rel_path: str) -> str | None:
         """Read a file from a session's workspace."""

@@ -21,7 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from backend.agent.loop import AgentLoop
+from backend.agent.loop import AgentLoop, TEACHING_SYSTEM_PROMPT
 from backend.agent.providers.base import Provider
 from backend.agent.providers.claude import ClaudeProvider
 from backend.agent.providers.gemini import GeminiProvider
@@ -65,7 +65,7 @@ def _get_provider() -> Provider:
         )
 
 
-def _build_agent(workspace: Path, on_event=None) -> AgentLoop:
+def _build_agent(workspace: Path, on_event=None, teaching_mode: bool = False) -> AgentLoop:
     """Construct an agent with all tools bound to the given workspace."""
     provider = _get_provider()
     tools = [
@@ -74,13 +74,20 @@ def _build_agent(workspace: Path, on_event=None) -> AgentLoop:
         ListFilesTool(workspace),
         RunCodeTool(workspace),
     ]
-    return AgentLoop(provider=provider, tools=tools, on_event=on_event)
+    system_prompt = TEACHING_SYSTEM_PROMPT if teaching_mode else None
+    return AgentLoop(provider=provider, tools=tools, on_event=on_event, system_prompt=system_prompt)
 
 
 # --- Pydantic models ---
 
 class ChatRequest(BaseModel):
     message: str
+    teaching_mode: bool = False
+
+
+class RunRequest(BaseModel):
+    path: str
+    content: str
 
 
 # --- Session endpoints ---
@@ -112,7 +119,15 @@ def read_file(session_id: str, file_path: str):
     return {"path": file_path, "content": content}
 
 
-# --- Chat history endpoint ---
+# --- Chat history endpoints ---
+
+@app.delete("/api/sessions/{session_id}/history")
+def clear_history(session_id: str):
+    """Clear a session's conversation history (workspace files are preserved)."""
+    if not sessions.clear_history(session_id):
+        raise HTTPException(404, "Session not found")
+    return {"ok": True}
+
 
 @app.get("/api/sessions/{session_id}/history")
 def get_history(session_id: str):
@@ -147,8 +162,11 @@ async def chat(session_id: str, req: ChatRequest):
     # Save user message to display history
     session.display.append(DisplayMessage(kind="user", content=req.message))
 
+    # Update teaching mode from request
+    session.teaching_mode = req.teaching_mode
+
     events: list[dict] = []
-    agent = _build_agent(session.workspace, on_event=lambda e: events.append(e))
+    agent = _build_agent(session.workspace, on_event=lambda e: events.append(e), teaching_mode=session.teaching_mode)
     answer, _ = await agent.run(req.message, session.history)
     files = sessions.get_files(session_id)
 
@@ -164,6 +182,28 @@ async def chat(session_id: str, req: ChatRequest):
     session.display.append(DisplayMessage(kind="assistant", content=answer))
 
     return {"answer": answer, "events": events, "files": files}
+
+
+# --- Run code endpoint (for in-browser editor) ---
+
+@app.post("/api/sessions/{session_id}/run")
+async def run_code(session_id: str, req: RunRequest):
+    """Save edited code to workspace and execute it."""
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+
+    # Write the (possibly edited) content to the file
+    target = (session.workspace / req.path).resolve()
+    if not str(target).startswith(str(session.workspace.resolve())):
+        raise HTTPException(400, "Invalid file path")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(req.content, encoding="utf-8")
+
+    # Execute using RunCodeTool
+    runner = RunCodeTool(session.workspace)
+    output = runner.execute(path=req.path)
+    return {"output": output}
 
 
 # --- WebSocket endpoint (streaming events) ---

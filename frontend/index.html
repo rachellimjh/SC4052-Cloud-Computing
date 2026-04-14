@@ -16,6 +16,11 @@
         <button class="collapse-btn" id="collapse-sidebar" title="Collapse sidebar">&lsaquo;</button>
       </div>
       <button id="new-session-btn">+ New Session</button>
+      <label class="toggle-row" title="Teaching Mode: annotate code with line-by-line explanations">
+        <span class="toggle-label">Teaching Mode</span>
+        <input type="checkbox" id="teaching-toggle" />
+        <span class="toggle-slider"></span>
+      </label>
       <ul id="session-list"></ul>
     </aside>
 
@@ -33,7 +38,10 @@
             placeholder="Describe what you want to build..."
             rows="3"
           ></textarea>
-          <button type="submit" id="send-btn">Send</button>
+          <div class="chat-actions">
+            <button type="button" id="clear-btn" title="Clear chat history">Clear</button>
+            <button type="submit" id="send-btn">Send</button>
+          </div>
         </form>
       </section>
 
@@ -52,8 +60,13 @@
         <div id="code-viewer">
           <div id="code-header">
             <span id="code-filename">Select a file</span>
+            <button id="run-btn" disabled title="Run this file">Run</button>
           </div>
-          <pre id="code-content"><code>No file selected</code></pre>
+          <textarea id="code-editor" placeholder="Select a file to view and edit..." disabled></textarea>
+          <div id="run-output" class="hidden">
+            <div id="run-output-header">Output</div>
+            <pre id="run-output-content"></pre>
+          </div>
         </div>
       </section>
     </main>

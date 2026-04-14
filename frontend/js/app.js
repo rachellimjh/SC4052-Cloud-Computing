@@ -15,9 +15,16 @@ const messagesDiv = document.getElementById("messages");
 const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
 const sendBtn = document.getElementById("send-btn");
+const clearBtn = document.getElementById("clear-btn");
 const fileList = document.getElementById("file-list");
 const codeFilename = document.getElementById("code-filename");
-const codeContent = document.getElementById("code-content").querySelector("code");
+const codeEditor = document.getElementById("code-editor");
+const runBtn = document.getElementById("run-btn");
+const runOutput = document.getElementById("run-output");
+const runOutputContent = document.getElementById("run-output-content");
+const teachingToggle = document.getElementById("teaching-toggle");
+
+let currentFilePath = null;
 
 // --- Sessions ---
 
@@ -28,7 +35,11 @@ async function createSession() {
   messagesDiv.innerHTML = "";
   fileList.innerHTML = "";
   codeFilename.textContent = "Select a file";
-  codeContent.textContent = "No file selected";
+  codeEditor.value = "";
+  codeEditor.disabled = true;
+  runBtn.disabled = true;
+  currentFilePath = null;
+  runOutput.classList.add("hidden");
   await refreshSessionList();
 }
 
@@ -92,7 +103,7 @@ chatForm.addEventListener("submit", async (e) => {
     const res = await fetch(`${API}/api/sessions/${currentSessionId}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, teaching_mode: teachingToggle.checked }),
     });
 
     if (!res.ok) {
@@ -223,7 +234,11 @@ async function viewFile(path) {
   if (!res.ok) return;
   const data = await res.json();
   codeFilename.textContent = data.path;
-  codeContent.textContent = data.content;
+  codeEditor.value = data.content;
+  codeEditor.disabled = false;
+  currentFilePath = data.path;
+  runBtn.disabled = !path.endsWith(".py");
+  runOutput.classList.add("hidden");
 
   document.querySelectorAll("#file-list li").forEach((li) => {
     li.classList.toggle("active", li.textContent === path);
@@ -315,6 +330,51 @@ function initResize(handle, getTarget, side) {
 
 initResize(resizeLeft, () => sidebar, "left");
 initResize(resizeRight, () => rightPanel, "right");
+
+// --- Clear button ---
+
+clearBtn.addEventListener("click", async () => {
+  if (!currentSessionId || isProcessing) return;
+  if (!confirm("Clear this session's chat history? Workspace files will be kept.")) return;
+  await fetch(`${API}/api/sessions/${currentSessionId}/history`, { method: "DELETE" });
+  messagesDiv.innerHTML = "";
+});
+
+// --- Run button (in-browser editor) ---
+
+runBtn.addEventListener("click", async () => {
+  if (!currentSessionId || !currentFilePath) return;
+  runBtn.disabled = true;
+  runBtn.textContent = "Running...";
+  runOutput.classList.remove("hidden");
+  runOutputContent.textContent = "Executing...";
+
+  try {
+    const res = await fetch(`${API}/api/sessions/${currentSessionId}/run`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: currentFilePath, content: codeEditor.value }),
+    });
+    const data = await res.json();
+    runOutputContent.textContent = data.output || "(no output)";
+  } catch (err) {
+    runOutputContent.textContent = `Error: ${err.message}`;
+  } finally {
+    runBtn.disabled = false;
+    runBtn.textContent = "Run";
+  }
+});
+
+// Tab key inserts a tab in the editor instead of changing focus
+codeEditor.addEventListener("keydown", (e) => {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const start = codeEditor.selectionStart;
+    const end = codeEditor.selectionEnd;
+    codeEditor.value = codeEditor.value.substring(0, start) + "    " + codeEditor.value.substring(end);
+    codeEditor.selectionStart = codeEditor.selectionEnd = start + 4;
+  }
+});
 
 // --- Init ---
 
