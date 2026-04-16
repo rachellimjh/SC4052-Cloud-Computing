@@ -6,7 +6,10 @@
       "Bash(gh api:*)",
       "Bash(pip install:*)",
       "Bash(python -c \":*)",
-      "Bash(timeout 5 python run.py)"
+      "Bash(timeout 5 python run.py)",
+      "Bash(python -c \"import pytest; print\\(pytest.__version__\\)\")",
+      "Bash(python -c \"import httpx; print\\(httpx.__version__\\)\")",
+      "Bash(python -m pytest tests/test_sessions.py -v)"
     ]
   }
 }

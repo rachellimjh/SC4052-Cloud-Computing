@@ -28,7 +28,7 @@ class Session:
     history: list[dict] = field(default_factory=list)
     display: list[DisplayMessage] = field(default_factory=list)
     title: str = "New Session"
-    teaching_mode: bool = False
+    mode: str = "builder"  # "builder" | "mentor" | "reviewer"
 
 
 class SessionManager:

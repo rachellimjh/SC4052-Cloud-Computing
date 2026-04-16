@@ -22,7 +22,16 @@ const codeEditor = document.getElementById("code-editor");
 const runBtn = document.getElementById("run-btn");
 const runOutput = document.getElementById("run-output");
 const runOutputContent = document.getElementById("run-output-content");
-const teachingToggle = document.getElementById("teaching-toggle");
+const modeBtns = document.querySelectorAll(".mode-btn");
+let currentMode = "builder";
+
+modeBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    modeBtns.forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentMode = btn.dataset.mode;
+  });
+});
 
 let currentFilePath = null;
 
@@ -95,6 +104,17 @@ chatForm.addEventListener("submit", async (e) => {
 
   if (!currentSessionId) await createSession();
 
+  // Warn if Reviewer Mode is selected but workspace has no files
+  if (currentMode === "reviewer") {
+    const files = document.querySelectorAll("#file-list li");
+    if (files.length === 0) {
+      appendMessage("user", message);
+      appendMessage("assistant", "**No files to review.** Write or generate some code first (switch to Builder mode), then come back to Reviewer mode to critique it.");
+      chatInput.value = "";
+      return;
+    }
+  }
+
   appendMessage("user", message);
   chatInput.value = "";
   setProcessing(true);
@@ -103,12 +123,17 @@ chatForm.addEventListener("submit", async (e) => {
     const res = await fetch(`${API}/api/sessions/${currentSessionId}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, teaching_mode: teachingToggle.checked }),
+      body: JSON.stringify({ message, mode: currentMode }),
     });
 
     if (!res.ok) {
       const err = await res.json();
-      appendMessage("assistant", `Error: ${err.detail || "Something went wrong"}`);
+      const status = res.status;
+      let msg = err.detail || "Something went wrong.";
+      if (status === 429) msg = "Rate limited — the model is busy. Wait a moment and try again.";
+      else if (status === 401) msg = "Invalid API key. Check your `.env` file.";
+      else if (status === 502) msg = `LLM error: ${err.detail}`;
+      appendMessage("assistant", `**Error ${status}:** ${msg}`);
       return;
     }
 
@@ -160,9 +185,14 @@ function setProcessing(on) {
 function appendMessage(role, content) {
   const div = document.createElement("div");
   div.className = `message ${role}`;
+
+  const bodyHtml = role === "assistant"
+    ? marked.parse(content)
+    : escapeHtml(content);
+
   div.innerHTML = `
     <div class="message-role">${role === "user" ? "You" : "c0der"}</div>
-    <div class="message-body">${escapeHtml(content)}</div>
+    <div class="message-body markdown-body">${bodyHtml}</div>
   `;
   messagesDiv.appendChild(div);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -330,6 +360,7 @@ function initResize(handle, getTarget, side) {
 
 initResize(resizeLeft, () => sidebar, "left");
 initResize(resizeRight, () => rightPanel, "right");
+
 
 // --- Clear button ---
 

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>c0der — zero code needed</title>
   <link rel="stylesheet" href="/css/style.css" />
+  <script src="/js/marked.min.js"></script>
 </head>
 <body>
   <div id="app">
@@ -16,11 +17,11 @@
         <button class="collapse-btn" id="collapse-sidebar" title="Collapse sidebar">&lsaquo;</button>
       </div>
       <button id="new-session-btn">+ New Session</button>
-      <label class="toggle-row" title="Teaching Mode: annotate code with line-by-line explanations">
-        <span class="toggle-label">Teaching Mode</span>
-        <input type="checkbox" id="teaching-toggle" />
-        <span class="toggle-slider"></span>
-      </label>
+      <div class="mode-selector">
+        <button class="mode-btn active" data-mode="builder" title="Plan, write, and run code for you">🧩 Builder</button>
+        <button class="mode-btn" data-mode="mentor" title="Explain every line like a tutor">🎓 Mentor</button>
+        <button class="mode-btn" data-mode="reviewer" title="Critique and improve existing code">🧠 Reviewer</button>
+      </div>
       <ul id="session-list"></ul>
     </aside>
 
