@@ -50,21 +50,13 @@ class OpenRouterProvider(Provider):
             try:
                 response = self.client.chat.completions.create(**kwargs)
                 return self._parse_response(response)
-            except openai.RateLimitError:
+            except openai.RateLimitError as e:
                 if attempt < 2:
                     time.sleep(5 * (attempt + 1))  # 5s, then 10s
                 else:
-                    return Response(
-                        content=(
-                            f"The model `{self.model}` is currently rate-limited "
-                            "by the upstream provider. Try again in a moment, or switch "
-                            "to a different model by changing OPENROUTER_MODEL in your .env — "
-                            "e.g. `mistralai/mistral-small-3.2-24b-instruct:free`."
-                        ),
-                        tool_calls=[],
-                    )
-            except openai.APIError as e:
-                return Response(content=f"OpenRouter API error: {e}", tool_calls=[])
+                    raise  # let app.py handle it as a proper 429
+            except openai.APIError:
+                raise  # let app.py handle it
 
     # ------------------------------------------------------------------
     # Conversion helpers

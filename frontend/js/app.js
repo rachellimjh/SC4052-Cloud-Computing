@@ -58,10 +58,27 @@ async function refreshSessionList() {
   sessionList.innerHTML = "";
   sessions.forEach((s) => {
     const li = document.createElement("li");
-    li.textContent = s.title || "New Session";
     li.dataset.id = s.id;
     if (s.id === currentSessionId) li.classList.add("active");
-    li.addEventListener("click", () => switchSession(s.id));
+
+    const title = document.createElement("span");
+    title.textContent = s.title || "New Session";
+    title.className = "session-title";
+    title.addEventListener("click", () => switchSession(s.id));
+
+    const del = document.createElement("button");
+    del.textContent = "×";
+    del.className = "session-delete-btn";
+    del.title = "Delete session";
+    del.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      await fetch(`${API}/api/sessions/${s.id}`, { method: "DELETE" });
+      if (currentSessionId === s.id) await createSession();
+      else await refreshSessionList();
+    });
+
+    li.appendChild(title);
+    li.appendChild(del);
     sessionList.appendChild(li);
   });
 }

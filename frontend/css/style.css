@@ -119,14 +119,13 @@ html, body {
 }
 
 #session-list li {
-  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 12px;
   border-radius: var(--radius);
-  cursor: pointer;
   font-size: 0.84rem;
   color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   transition: background 0.12s ease;
   margin-bottom: 2px;
 }
@@ -140,6 +139,38 @@ html, body {
   color: var(--accent);
   font-weight: 600;
   box-shadow: var(--shadow-sm);
+}
+
+.session-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  padding: 5px 0;
+}
+
+.session-delete-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+#session-list li:hover .session-delete-btn {
+  opacity: 1;
+}
+
+.session-delete-btn:hover {
+  color: var(--red);
+  background: var(--bg-hover);
 }
 
 /* === Collapse / Expand buttons === */

@@ -5,6 +5,7 @@ reads and writes files. Sessions also hold conversation history so the
 agent can maintain context across multiple messages.
 """
 
+import shutil
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -69,6 +70,15 @@ class SessionManager:
             if path.is_file():
                 files.append(str(path.relative_to(session.workspace)))
         return files
+
+    def delete(self, session_id: str) -> bool:
+        """Delete a session and remove its workspace from disk."""
+        session = self.get(session_id)
+        if not session:
+            return False
+        shutil.rmtree(session.workspace, ignore_errors=True)
+        del self._sessions[session_id]
+        return True
 
     def clear_history(self, session_id: str) -> bool:
         """Clear conversation and display history for a session (keeps workspace files)."""

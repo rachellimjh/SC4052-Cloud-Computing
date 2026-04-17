@@ -63,17 +63,17 @@ sessions = SessionManager(WORKSPACES_DIR)
 
 def _get_provider() -> Provider:
     """Auto-detect which LLM provider to use based on environment variables.
-    Priority: OPENROUTER_API_KEY > GEMINI_API_KEY > ANTHROPIC_API_KEY
+    Priority: GEMINI_API_KEY > OPENROUTER_API_KEY > ANTHROPIC_API_KEY
     """
     openrouter_key = os.getenv("OPENROUTER_API_KEY", "")
     gemini_key = os.getenv("GEMINI_API_KEY", "")
     anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
 
-    if openrouter_key:
+    if gemini_key:
+        return GeminiProvider(api_key=gemini_key)
+    elif openrouter_key:
         model = os.getenv("OPENROUTER_MODEL", "google/gemma-4-31b-it:free")
         return OpenRouterProvider(api_key=openrouter_key, model=model)
-    elif gemini_key:
-        return GeminiProvider(api_key=gemini_key)
     elif anthropic_key:
         return ClaudeProvider(api_key=anthropic_key)
     else:
@@ -127,6 +127,13 @@ def create_session():
 @app.get("/api/sessions")
 def list_sessions():
     return sessions.list_all()
+
+
+@app.delete("/api/sessions/{session_id}")
+def delete_session(session_id: str):
+    if not sessions.delete(session_id):
+        raise HTTPException(404, "Session not found")
+    return {"ok": True}
 
 
 @app.get("/api/sessions/{session_id}/history")
